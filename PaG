@@ -31,9 +31,12 @@ if tabla2 ~= 0 then
     t2 = 0:Tm:tmax2;    //Escala de tiempos grafica 2
 end
 
-//*Referencias (Si no se desea, dejar a 0)
-Ref1 = 0;
-Ref2 = 0;
+//Caracterizacion
+    //Puntos maximo
+max1 = [max(m1(:,1)),max(m1(:,2)),max(m1(:,3))];
+min1 = [min(m1(:,1)),min(m1(:,2)),min(m1(:,3))];
+max2 = [max(m2(:,1)),max(m2(:,2)),max(m2(:,3))];
+min2 = [min(m2(:,1)),min(m2(:,2)),min(m2(:,3))];
 
 //Graficas
     //*¿Unir puntos con lineas? 1/0
@@ -68,8 +71,6 @@ end
 
     //Colores de cada variable
 col = ['r','g','b'];
-linea = ['-','-.','--'];
-
     //Estilos de los punteros
 sty = [9,2,6,11,10,14,1,7,0,5];
 
@@ -81,13 +82,39 @@ if lineas then
     frmt = strcat(['-',frmt]);
 end
 
+rpta1 = [];         //Valores de la respuesta cuando t=tau
+rpta2 = [];
+tau1 = [0,0,0];     //Valores de la constante tau
+tau2 = [0,0,0];
+
 figure('BackgroundColor',[1 1 1]);
 for i=1:ncol_1
+    TOL = 0.05;          //Valor de tolerancia de error entre f(tau) y rpta
+    //Calculo de respuesta a t=tau
+    rpta1(i) = (min1(i)-(min1(i)-max1(i))*0.63);
+    while tau1(i)==0
+        temp = [];
+        for v=1:120
+            if abs(m1(v,i)-rpta1(i))<=TOL then
+                temp(size(temp)+1) = v*Tm;
+            end
+        end
+        
+        for x=1:max(size(temp))
+            tau1(i) = tau1(i) + temp(x);
+        end
+        if max(size(temp))~=0 then
+            tau1(i) = tau1(i)/max(size(temp))/2;
+        end
+        TOL = TOL + 0.05;
+    end
+    
+    //Grafica
     if no_h & byn then
         frmt = linea(i);
         col(i) = 'k';
     end
-    plot(t1*Tm,m1(:,i)',strcat([col(i),frmt]));
+    plot(t1/2,m1(:,i)',strcat([col(i),frmt]));
     h = get("hdl");
     h = h.children;
     h.mark_size=4;
@@ -102,20 +129,14 @@ end
 
 legend(Nom_1,2);
 
-if Ref1>0 then
-    plot(t1*Tm,Ref1*ones(t1),'k');
-    legend(Nom_1,'Ref',2);
-end
+//plot(t1/2,60*ones(t1),'k');
+//legend(Nom_1,'Ref');
 
-if cuad then
-    xgrid;
-end
-
+a = get('current_axes');
+a.font_size = 3;
+a.x_label.font_size = 3;
+a.y_label.font_size = 3;
 if byn then
-    a = get('current_axes');
-    a.font_size = 3;
-    a.x_label.font_size = 3;
-    a.y_label.font_size = 3;
     c1 = a.children(2).children(1);
     c2 = a.children(3).children(1);
     c3 = a.children(4).children(1);
@@ -124,16 +145,49 @@ if byn then
     c3.thickness = 2;
 end
 
+for i=1:ncol_1
+    plot(1:Tm:tau1(i),rpta1(i)*ones(1:Tm:tau1(i)),strcat([col(i),linea(i)]));
+    plot([tau1(i),tau1(i)],[20,rpta1(i)],strcat([col(i),linea(i)]));
+end
+
+if cuad then
+    xgrid;
+end
+
 xtitle(Tit_1,x_1,y_1);
 title(Tit_1,'font_size',4,'font_style',4);
 
 if tabla2 ~= 0 then
+    rpta2 = [];
     figure('BackgroundColor',[1 1 1]);
     for i=1:ncol_2
-                if no_h & byn then
-            frmt = linea(i);
+        TOL = 0.05;          //Valor de tolerancia de error entre f(tau) y rpta
+        //Calculo de respuesta a t=tau
+        rpta2(i) = (min2(i)-(min2(i)-max2(i))*0.63);
+        while tau2(i)==0
+            temp = [];
+            for v=1:120
+                if abs(m2(v,i)-rpta2(i))<=TOL then
+                    temp(size(temp)+1) = v*Tm;
+                end
+            end
+            
+            for x=1:max(size(temp))
+                tau2(i) = tau2(i) + temp(x);
+            end
+            if max(size(temp))~=0 then
+                tau2(i) = tau2(i)/max(size(temp))/2;
+            end
+            TOL = TOL + 0.05;
         end
-        plot(t2*Tm,m2(:,i)',strcat([col(i),frmt]));
+        
+        //Grafica
+        
+        if no_h & byn then
+            frmt = linea(i);
+            col(i) = 'k';
+        end
+        plot(t2/2,m2(:,i)',strcat([col(i),frmt]));
         h = get("hdl");
         h = h.children;
         h.mark_size=4;
@@ -142,35 +196,38 @@ if tabla2 ~= 0 then
         end
         if no_h then
             h.mark_mode = 'off';
-            h.thickness = 2;
         end
     end
 
     legend(Nom_2,2);
 
-    if Ref2>0 then
-        plot(t2*Tm,Ref2*ones(t2),'k');
-        legend(Nom_2,'Ref',2);
-    end
+
+//    plot(t2/2,60*ones(t2),'k');
+//    legend(Nom_2,'Ref');
+
 
     if cuad then
         xgrid;
-        'hi'
+    end
+
+    a = get('current_axes');
+    a.font_size = 3;
+    a.x_label.font_size = 3;
+    a.y_label.font_size = 3;
+    if byn then
+        c1 = a.children(2).children(1);
+        c2 = a.children(3).children(1);
+        c3 = a.children(4).children(1);
+        c1.thickness = 2;
+        c2.thickness = 2;
+        c3.thickness = 2;
     end
 
     xtitle(Tit_2,x_2,y_2);
     title(Tit_2,'font_size',4,'font_style',4);
 end
 
-if byn then
-    a = get('current_axes');
-    a.font_size = 3;
-    a.x_label.font_size = 3;
-    a.y_label.font_size = 3;
-    c1 = a.children(2).children(1);
-    c2 = a.children(3).children(1);
-    c3 = a.children(4).children(1);
-    c1.thickness = 2;
-    c2.thickness = 2;
-    c3.thickness = 2;
+for i=1:ncol_2
+    plot(1:Tm:tau2(i),rpta2(i)*ones(1:Tm:tau2(i)),strcat([col(i),linea(i)]));
+    plot([tau2(i),tau2(i)],[20,rpta2(i)],strcat([col(i),linea(i)]));
 end
